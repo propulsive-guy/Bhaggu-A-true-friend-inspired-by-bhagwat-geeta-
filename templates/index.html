@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sachha Dost</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Segoe+UI:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #eaf3ff;
+      color: #0b3d91;
+      overflow-x: hidden;
+    }
+
+    #loader-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    #main-ui {
+      display: none;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #main-title {
+      font-family: 'Pacifico', cursive;
+      font-size: 4rem;
+      color: #000000;
+      margin-bottom: 10px;
+      animation: fadeIn 2s ease-in-out;
+    }
+
+    #tagline {
+      font-size: 1.5rem;
+      margin-bottom: 30px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .avatar {
+      margin-bottom: 30px;
+      animation: fadeIn 1.5s ease-in-out;
+    }
+
+    .avatar img {
+      width: 150px;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .chat-container {
+      width: 90%;
+      max-width: 720px;
+      background: white;
+      border-radius: 50px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      gap: 12px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      padding: 12px;
+      border-radius: 30px;
+      background: #f5f5f5;
+    }
+
+    .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e7f0ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .icon:hover {
+      background-color: #d0e6ff;
+    }
+
+    .icon img {
+      width: 20px;
+    }
+
+    #output {
+      margin-top: 30px;
+      max-width: 700px;
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      white-space: pre-wrap;
+    }
+
+    @keyframes fadeIn {
+      0% {opacity: 0; transform: translateY(-20px);}
+      100% {opacity: 1; transform: translateY(0);}
+    }
+
+    .floating {
+      animation: float 2s ease-in-out infinite;
+      width: 180px;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loader Screen -->
+  <div id="loader-screen">
+    <img src="{{ url_for('static', filename='bhaggu.png') }}" alt="Bhaggu" class="floating">
+    <h2 style="margin-top: 20px; font-family: 'Pacifico'; font-size: 2rem;">शेयर करो दिल की बातें बिना डरे! </h2>
+    <button id="start-btn" onclick="startIntro()" style="background-color: #0b3d91; color: white; padding: 12px 25px; border-radius: 30px; cursor: pointer;">Start</button>
+  </div>
+
+  <!-- Main Chat UI -->
+  <div id="main-ui">
+    <h1 id="main-title">Sachha Dost !</h1>
+    <div class="avatar">
+      <img src="{{ url_for('static', filename='bhaggu.png') }}" alt="Sachha Dost">
+    </div>
+    <h2 id="tagline">Bol Bhai Kya Hua ?</h2>
+
+    <div class="chat-container">
+      <input type="text" id="user-input" placeholder="Ask anything...">
+      <div class="icon" onclick="sendMessage()" title="Send">
+        <img src="https://img.icons8.com/ios-glyphs/30/000000/filled-sent.png" alt="Send">
+      </div>
+      <div class="icon" onclick="toggleSpeak()" title="Speak">
+        <img id="speak-icon" src="https://img.icons8.com/ios-glyphs/30/000000/voice-presentation.png" alt="Speak">
+      </div>
+    </div>
+
+    <div id="output"></div>
+  </div>
+
+  <audio id="intro-audio" src="{{ url_for('static', filename='intro.mp3') }}" preload="auto"></audio>
+
+  <script>
+    let lastReply = "";
+    let synth = window.speechSynthesis;
+    let isSpeaking = false;
+    let voices = [];
+
+    function startIntro() {
+      const audio = document.getElementById("intro-audio");
+
+      // Ensure the audio is ready to play
+      audio.load();
+      audio.play().then(() => {
+        setTimeout(() => {
+          document.getElementById("loader-screen").style.display = "none";
+          document.getElementById("main-ui").style.display = "flex";
+        }, 17000); // Adjust as needed
+      }).catch((error) => {
+        console.error("Audio playback failed:", error);
+        alert("Unable to play intro audio.");
+      });
+    }
+
+    function loadVoices() {
+      voices = synth.getVoices();
+    }
+
+    synth.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const output = document.getElementById("output");
+      const message = input.value.trim();
+      if (!message) return;
+
+      output.innerHTML = `<strong>You:</strong> ${message}<br><br>Thinking...`;
+      input.value = "";
+
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+        const data = await response.json();
+        lastReply = data.reply;
+        output.innerHTML = `<strong>You:</strong> ${message}<br><br><strong>Sachha Dost:</strong> ${lastReply}`;
+
+        if (isSpeaking) speakText(lastReply);
+      } catch (err) {
+        output.innerHTML = `<strong>Error:</strong> ${err.message}`;
+      }
+    }
+
+    function speakText(text) {
+      stopSpeaking();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = /[ऀ-ॿ]/.test(text) ? "hi-IN" : "en-US";
+
+      const selectedVoice = voices.find(v =>
+        utterance.lang === "hi-IN"
+          ? v.lang.startsWith("hi") || v.lang.startsWith("mr")
+          : v.lang === "en-US"
+      );
+
+      if (selectedVoice) utterance.voice = selectedVoice;
+      synth.speak(utterance);
+    }
+
+    function stopSpeaking() {
+      if (synth.speaking) synth.cancel();
+    }
+
+    function toggleSpeak() {
+      const icon = document.getElementById("speak-icon");
+      isSpeaking = !isSpeaking;
+      icon.src = isSpeaking
+        ? "https://img.icons8.com/ios-glyphs/30/fa314a/no-audio--v1.png"
+        : "https://img.icons8.com/ios-glyphs/30/000000/voice-presentation.png";
+
+      if (!isSpeaking) stopSpeaking();
+      else if (lastReply) speakText(lastReply);
+    }
+
+    document.getElementById("user-input").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>
